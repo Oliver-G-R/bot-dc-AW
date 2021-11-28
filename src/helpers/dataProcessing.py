@@ -11,7 +11,11 @@ def saveDataToJson(filename, data):
 
 
 def getJson(filename):
-    with open(filename, "r") as f:
-        data = json.load(f)
-        f.close()
-    return data
+    try:
+        with open(f"src/exam/{filename}.json", "r") as f:
+            data = json.load(f)
+            f.close()
+        return data
+    except FileNotFoundError:
+        print(f"File {filename}.json not found")
+        return []

@@ -1,31 +1,49 @@
 import os
 import discord
 from dotenv import load_dotenv
-
 from discord.ext import commands
 import requests
 
 # helpers
-from helpers.dataProcessing import saveDataToJson
+from helpers.dataProcessing import getJson, saveDataToJson
 
 load_dotenv()
 TOKEN_BOT = os.getenv("TOKEN_BOT")
 
 bot = commands.Bot(command_prefix="!", description="A bot for the Discord server.")
+bot.remove_command("help")
 
 
 @bot.command()
-async def q(ctx, *, question):
+async def aw(ctx, *args):
     """
-    Ask a question to the bot and get the answer.
+    Responde las preguntas que esten en el examen.
+    Uso: !aw <examen> <pregunta> (public)
     """
-    pass
+    if len(args) >= 1 and len(args) <= 2 and len(args) != 1:
+        questions = getJson(args[0].lower())
+        if len(questions) > 0:
+            for question in questions:
+                if args[1] in question["question"] and len(args[1]) >= 4:
+                    await ctx.send(f"**{question['question'].upper()}**")
+                    for answer in question["answers"]:
+                        await ctx.send(answer)
+        else:
+            await ctx.send(
+                f"No se encontro el nombre del examen **{args[0]}** seleccionado, usa !aw nombreExamen pregunta"
+            )
+
+    elif len(args) == 1:
+        await ctx.send("Falto la pregunta")
+    else:
+        await ctx.send("Escribe los parametros disponibles")
 
 
+# Lista todos los archivos json de los examnes disponibles
 @bot.command()
 async def exams(ctx):
     """
-    Get the exams of the day.
+    Obtiene el listado de examenes disponibles (public)
     """
     exam_list = []
 
@@ -41,7 +59,7 @@ async def exams(ctx):
 
             embed = discord.Embed(
                 title=f"{ctx.guild.name}",
-                description="Etos son los nombres de los examenes que estan disponibles, recuerda usar !aw nombreExamen pregunta, para poder ver las respuestas registradas",
+                description="Estos son los nombres de los examenes que estan disponibles, recuerda usar !aw nombreExamen pregunta, para poder ver las respuestas registradas",
                 timestamp=ctx.message.created_at,
                 color=discord.Color.gold(),
             )
@@ -56,9 +74,12 @@ async def exams(ctx):
         await ctx.send("No se han añadido examenes")
 
 
-# comandos
+# Añade los examenes en formato json
 @bot.command()
 async def addExam(ctx):
+    """
+    Añade el examen (root)
+    """
     if ctx.author.guild_permissions.administrator:
         try:
             files = ctx.message.attachments
@@ -92,33 +113,53 @@ async def addExam(ctx):
         await ctx.message.delete()
 
 
+# Lista los comandos disponibles
+@bot.command()
+async def info(ctx):
+    """
+    Información de los comandos disponibles (public)
+    """
+    commands = bot.commands
+
+    embed = discord.Embed(
+        title=f"{ctx.guild.name}",
+        description="Estos son los comandos disponibles",
+        timestamp=ctx.message.created_at,
+        color=discord.Color.gold(),
+    )
+
+    for command in commands:
+        embed.add_field(
+            name=f"{command.name}",
+            value=f"{command.help}",
+        )
+
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def delete(ctx):
+    """
+    Elimina todos los mensajes del chat de la sala (root)
+    """
+    if ctx.author.guild_permissions.administrator:
+        await ctx.channel.purge()
+    else:
+        await ctx.send("No tienes permisos para usar este comando")
+        await ctx.message.delete()
+
+
 if __name__ == "__main__":
 
-    # eventos
     @bot.event
     async def on_ready():
         print(f"{bot.user} has connected to Discord!")
 
-    @bot.command()
-    async def info(ctx):
-        embed = discord.Embed(
-            title=f"{ctx.guild.name}",
-            description="Hola, soy el bot para tus respuestas de examenes. Empieza a agregar un JSON con la información",
-            timestamp=ctx.message.created_at,
-            color=discord.Color.red(),
-        )
-        embed.add_field(
-            name="Comandos",
-            value="!addExam \n!delete \n!lis\n!help\n!exams",
-        )
-        await ctx.send(embed=embed)
-
-    """@bot.listen()
-    async def on_message(message):
-        if "prueba" in message.content.lower():
-            await message.channel.send(
-                "Hola, soy el bot para tus respuesas de examenes"
+    @bot.event
+    async def on_command_error(ctx, error):
+        if isinstance(error, commands.CommandNotFound):
+            await ctx.send(
+                "El comando no existe, intenta con !info para ver los comandos disponibles"
             )
-            await bot.process_commands(message)"""
 
     bot.run(TOKEN_BOT)
