@@ -7,7 +7,7 @@ $ pip install -r requirements.txt
 $ python src/index.py
 ```  
 
-### Api Discord 
+### Discord Bot Dev
 
 [discord dev](https://discord.com/developers/)    
 
