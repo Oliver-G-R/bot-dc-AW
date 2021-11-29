@@ -14,26 +14,28 @@ bot = commands.Bot(command_prefix="!", description="A bot for the Discord server
 bot.remove_command("help")
 
 
-@bot.command()
-async def aw(ctx, *args):
+'''
+Comando que capture el comando exam y que capture la pregunta completa 
+y la guarde en un archivo json.
+'''
+@bot.command(name="aw")
+async def answerExam(ctx, ex, question):  
+
     """
-    Responde las preguntas que esten en el examen.
-    Uso: !aw <examen> <pregunta> (public)
-    """
-    if len(args) >= 1 and len(args) <= 2 and len(args) != 1:
-        questions = getJson(args[0].lower())
-        if len(questions) > 0:
-            for question in questions:
-                if args[1] in question["question"] and len(args[1]) >= 4:
-                    await ctx.send(f"**{question['question'].upper()}**")
-                    for answer in question["answers"]:
+    ​    Responde las preguntas que esten en el examen.
+    ​    Uso: !aw <examen> <pregunta> (public)
+"""
+    if ex is not None or question is not None:
+        questionsJSON = getJson(ex.lower())
+        if len(questionsJSON) > 0:
+            for qu in questionsJSON:
+                if question.lower() in qu["question"] and len(question) >= 4:
+                    await ctx.send(f"**{qu['question'].upper()}**")
+                    for answer in qu["answers"]:
                         await ctx.send(answer)
         else:
-            await ctx.send(
-                f"No se encontro el nombre del examen **{args[0]}** seleccionado, usa !aw nombreExamen pregunta"
-            )
-
-    elif len(args) == 1:
+            await ctx.send(f"No se encontro el nombre del examen **{ex}** seleccionado, usa !aw nombreExamen pregunta")
+    elif question is None:
         await ctx.send("Falto la pregunta")
     else:
         await ctx.send("Escribe los parametros disponibles")
@@ -144,6 +146,22 @@ async def delete(ctx):
     """
     if ctx.author.guild_permissions.administrator:
         await ctx.channel.purge()
+    else:
+        await ctx.send("No tienes permisos para usar este comando")
+        await ctx.message.delete()
+
+
+@bot.command()
+async def deleteExam(ctx, exam):
+    """
+    Elimina el examen (root)
+    """
+    if ctx.author.guild_permissions.administrator:
+        try:
+            os.remove(f"src/exam/{exam}.json")
+            await ctx.send(f"{exam} Eliminado")
+        except FileNotFoundError:
+            await ctx.send("No se encontro el examen")
     else:
         await ctx.send("No tienes permisos para usar este comando")
         await ctx.message.delete()
