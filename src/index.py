@@ -13,32 +13,42 @@ TOKEN_BOT = os.getenv("TOKEN_BOT")
 bot = commands.Bot(command_prefix="!", description="A bot for the Discord server.")
 bot.remove_command("help")
 
+def getPermissions(roles, permissionAdmin):
+    for role in roles:
+        if role.name == "pb🤖" or permissionAdmin:
+            return True
+    return False
 
 '''
 Comando que capture el comando exam y que capture la pregunta completa 
 y la guarde en un archivo json.
 '''
 @bot.command(name="aw")
-async def answerExam(ctx, ex, question):  
-
+async def answerExam(ctx, ex, question): 
     """
     ​    Responde las preguntas que esten en el examen.
     ​    Uso: !aw <examen> <pregunta> (public)
-"""
-    if ex is not None or question is not None:
-        questionsJSON = getJson(ex.lower())
-        if len(questionsJSON) > 0:
-            for qu in questionsJSON:
-                if question.lower() in qu["question"] and len(question) >= 4:
-                    await ctx.send(f"**{qu['question'].upper()}**")
-                    for answer in qu["answers"]:
-                        await ctx.send(answer)
+    """
+    roles = ctx.author.roles
+    permissionsAdmin = ctx.author.guild_permissions.administrator
+
+    if getPermissions(roles, permissionsAdmin):
+        if ex is not None or question is not None:
+            questionsJSON = getJson(ex.lower())
+            if len(questionsJSON) > 0:
+                for qu in questionsJSON:
+                    if question.lower() in qu["question"] and len(question) >= 4:
+                        await ctx.send(f"**{qu['question'].upper()}**")
+                        for answer in qu["answers"]:
+                            await ctx.send(answer)
+            else:
+                await ctx.send(f"No se encontro el nombre del examen **{ex}** seleccionado, usa !aw nombreExamen pregunta")
+        elif question is None:
+            await ctx.send("Falto la pregunta")
         else:
-            await ctx.send(f"No se encontro el nombre del examen **{ex}** seleccionado, usa !aw nombreExamen pregunta")
-    elif question is None:
-        await ctx.send("Falto la pregunta")
+            await ctx.send("Escribe los parametros disponibles")
     else:
-        await ctx.send("Escribe los parametros disponibles")
+        await ctx.send("No tienes permisos para usar este comando")
 
 
 # Lista todos los archivos json de los examnes disponibles
